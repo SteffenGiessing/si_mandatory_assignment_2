@@ -5,28 +5,27 @@ const PORT = 5004;
 var app = express();
 app.use(express.json());
 
+//DB Connection
+const con = db.createConnection({
+    host: "localhost",
+    user: "root",
+    password: "Stef2761",
+    database: "borger"
+});
+con.connect(function (err) {
+    if (err) throw err;
+    console.log("Connected");
+});
 /*
 ADDRESS CRUD
  */
 //Address query
-const readquery_address = "SELECT id, BorgerUserId, CreatedAt, IsValid FROM address";
+const readquery_address = "SELECT id, BorgerUserId, CreatedAt, IsValid FROM borger.address";
 const createquery_address = "INSERT INTO  address (id, BorgerUserId, CreatedAt, IsValid) VALUES (?, ?, ?, ?)";
 const updatequery_address = "UPDATE address SET ? = ?  WHERE id =  ?";
 const deletequery_address = "DELETE FROM address WHERE ? = ?";
 
-app.get('/api/borger', async (req, res) => {
-    res.status(200).send("steffen");
-});
-http.createServer((req, res) => {
-    req.on('api/borger', chunck =>{
-        console.log("hallo")
-    });
-    req.on('/borger', chunk2 => {
-        console.log("hallo2")
-    })
-})
-
-app.get('/read_adress', async (req, res) => {
+app.get('/api/read_borger_address_table', async (req, res) => {
     con.query(readquery_address, async (err, results, fields) => {
         if (err) throw err;
         console.log(results);
@@ -129,17 +128,7 @@ app.post('/delete_borgeruser', async (req, res) => {
     });
 });
 
-//DB Connection
-const con = db.createConnection({
-    host: "localhost",
-    user: "root",
-    password: "Stef2761",
-    database: "borger"
-});
-con.connect(function (err) {
-    if (err) throw err;
-    console.log("Connected");
-});
+
 
 app.use(express.urlencoded({extended: true}))
 //?Main?

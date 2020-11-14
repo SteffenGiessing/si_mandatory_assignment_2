@@ -1,25 +1,72 @@
 const express = require('express');
 const db = require('mysql');
-const PORT = 8091;
+const PORT = 5005;
 var app = express();
 app.use(express.json());
-
+const axios = require('axios')
 //CRUD Account
-const createquery_account = "INSERT INTO  bank.account (id, BankUserId, AccountNo, IsStudent, CreateAt, ModfiedAt, InterestRate, Amount) VALUES (?, ?, ?, ?,?,?,?,?)";
+const createquery_account = "INSERT INTO  bank.account (id, BankUserId, AccountNo, IsStudent, CreateAt, ModfiedAt, InterestRate, Amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 const readquery_account = "SELECT id, BankUserId,IsStudent, CreateAt, ModfiedAt, InterestRate, Amount FROM bank.account";
-const updatequery_account = "UPDATE bank.account SET ? = ?  WHERE id =  ?";
+const updatequery_account = "UPDATE bank.account SET ? = ?  WHERE ? =  ?";
+const update_deduct_amount_account = "UPDATE bank.account SET Amount = ? - ?  WHERE ? = ?";
+const update_add_amount_account = "UPDATE bank.account SET Amount = Amount + ?  WHERE BankUserId = ?";
 const deletequery_account = "DELETE FROM bank.account WHERE ? = ?";
-app.post('add_deposit', async (req, res) => {
-    let amount = req.body.amount;
-    let bankerUserId = req.body.bankerUserId;
+const read_deposit = "SELECT bankUserId, CreateAt, Amount FROM bank.deposit WHERE BankUserId = ?";
 
-     if (amount > 0){
-         module.exports = async function(context, myTrigger, myInput, myOtherInput) {
-             context.log("JavaScript trigger function processed a request.");
-         }
-     } else{
-         res.status(404).send("You cannot send 0 or below 0");
-     }
+app.post('/api/bank/add_deposit', async (req, res) => {
+    let incomingAmount = req.body.amount;
+    let bankerUserId = req.body.bankUserId;
+    console.log(bankerUserId);
+    if (incomingAmount > 0) {
+        console.log(bankerUserId);
+        axios({
+            method: 'post',
+            url: 'http://localhost:7071/api/interestRate',
+            data: {
+                amount: req.body.amount
+            }
+        }).then(response => {
+                let amount = response.data;
+                let finalAmount = amount.replace(',', ".")
+                console.log(Number(amount), finalAmount)
+
+                con.query(update_add_amount_account, [finalAmount, bankerUserId], async (err) => {
+                    console.log(update_add_amount_account, [finalAmount, bankerUserId])
+                    if (err) {
+                        console.log("line 34")
+                        res.status(500).send("Bad Request");
+                    } else {
+                        res.status(200).send({"Response": 'Success: ' + amount});
+                    }
+                });
+            }
+        )
+    }
+});
+
+//MISSING SOMETHING
+app.get('/api/bank/list_deposit', async (req, res) => {
+    let bankUserId = req.body.bankUserId;
+    console.log(bankUserId);
+
+    con.query(read_deposit, [bankUserId], async (err, rows) => {
+        if (err) throw err;
+        res.status(200).send("here is the requested: " + rows);
+    });
+});
+app.get('/api/bank/create_loan', async (req, res) => {
+    let bankUserId = req.body.bankUserId;
+    let loanAmount = req.body.loanAmount;
+    console.log(bankUserId);
+    console.log(loanAmount);
+
+    axios({
+        method: 'post',
+        url: 'http://localhost:7071/api/loanAlgorithm',
+        data: {
+            name: "Steffen"
+        }
+    });
 
 });
 app.post('/add_account', async (req, res) => {
@@ -35,22 +82,25 @@ app.post('/add_account', async (req, res) => {
 
     con.query(createquery_account, [id, bankUserId, accountNo, createAt, modifiedAt, interestRate, amount], async (err) => {
         if (err) throw err;
-        res.status(200).send("inserted:" );
+        res.status(200).send("inserted:");
     });
 });
 app.get('/read_account', async (req, res) => {
     con.query(readquery_account, async (err, results, fields) => {
         if (err) throw err;
         console.log(results);
-        res.status(200).send("Data set fetched: \n" + results.toString());
+        res.status(200).send({"response": "Data set fetched: ", results});
     });
+});
+app.post('/add_amount', async (req, res) => {
+
 });
 app.post('/update_account', async (req, res) => {
     let where = req.body.where;
     let change = req.body.change;
     let id_find = req.body.id_find;
 
-    con.query(updatequery_account, [where,change, id_find], async (err) => {
+    con.query(updatequery_account, [where, change, id_find], async (err) => {
         if (err) throw err;
         res.status(200).send("changed the follow: " + id_find + " to " + change);
     });
